@@ -64,8 +64,8 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     printf("open %s", path);
     fr = f_open(&fil, path, FA_READ);
     if (FR_OK != fr && FR_EXIST != fr) {
-        panic("f_open(%s) error: %s (%d)\n", path, FRESULT_str(fr), fr);
-        // exit(0);
+        printf("f_open(%s) error: %s (%d)\n", path, FRESULT_str(fr), fr);
+        return 1;
     }
     
     // Set the file pointer from the beginning
@@ -74,11 +74,13 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     if (br != sizeof(BMPFILEHEADER)) {
         printf("f_read bmpFileHeader error\r\n");
         // printf("br is %d\n", br);
+        return 1;
     }
     f_read(&fil, &bmpInfoHeader, sizeof(BMPINFOHEADER), &br);   // sizeof(BMPFILEHEADER) must be 50
     if (br != sizeof(BMPINFOHEADER)) {
         printf("f_read bmpInfoHeader error\r\n");
         // printf("br is %d\n", br);
+        return 1;
     }
     if(bmpInfoHeader.biWidth > bmpInfoHeader.biHeight)
         Paint_SetRotate(0);
@@ -91,6 +93,7 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     int readbyte = bmpInfoHeader.biBitCount;
     if(readbyte != 24){
         printf("Bmp image is not 24 bitmap!\n");
+        return 1;
     }
     // Read image data into the cache
     UWORD x, y;
