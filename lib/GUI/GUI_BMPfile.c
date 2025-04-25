@@ -42,6 +42,17 @@
 #include "f_util.h"
 #include "ff.h"
 
+#define GUI_COLORMAP_NUM_COLORS 7
+const uint8_t GUI_ColorMap[GUI_COLORMAP_NUM_COLORS][3] = {
+        {0, 0, 0}, // Black
+        {255, 255, 255}, // White
+        {0, 255, 0}, // Green
+        {0, 0, 255}, // Blue
+        {255, 0, 0}, // Red
+        {255, 255, 0}, // Yellow
+        {255, 127, 0}, // Orange
+};
+
 UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
 {
     BMPFILEHEADER bmpFileHeader;  //Define a bmp file header structure
@@ -87,7 +98,6 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     
     f_lseek(&fil, bmpFileHeader.bOffset);
 
-    UBYTE color;
     printf("read data\n");
     
     for(y = 0; y < bmpInfoHeader.biHeight; y++) {//Total display column
@@ -105,29 +115,35 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
                 break;
             }
 
-			if(Rdata[0] == 0 && Rdata[1] == 0 && Rdata[2] == 0){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  0;//Black
-                color = 0;
-			}else if(Rdata[0] == 255 && Rdata[1] == 255 && Rdata[2] == 255){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  1;//White
-                color = 1;
-			}else if(Rdata[0] == 0 && Rdata[1] == 255 && Rdata[2] == 0){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  2;//Green
-                color = 2;
-			}else if(Rdata[0] == 255 && Rdata[1] == 0 && Rdata[2] == 0){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  3;//Blue
-                color = 3;
-			}else if(Rdata[0] == 0 && Rdata[1] == 0 && Rdata[2] == 255){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  4;//Red
-                color = 4;
-			}else if(Rdata[0] == 0 && Rdata[1] == 255 && Rdata[2] == 255){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  5;//Yellow
-                color = 5;
-			}else if(Rdata[0] == 0 && Rdata[1] == 128 && Rdata[2] == 255){
-				// Image[x+(y* bmpInfoHeader.biWidth )] =  6;//Orange
-                color = 6;
-			}
-            Paint_SetPixel(Xstart + bmpInfoHeader.biWidth-1-x, Ystart + y, color);
+            uint8_t pixel_r = Rdata[2], pixel_g = Rdata[1], pixel_b = Rdata[0];
+            uint8_t color_min_delta_idx = 0;
+            uint32_t color_min_delta = UINT32_MAX;
+            for (int color_idx = 0; color_idx < GUI_COLORMAP_NUM_COLORS; color_idx++) {
+                uint8_t color_r = GUI_ColorMap[color_idx][0],
+                    color_g = GUI_ColorMap[color_idx][1],
+                    color_b = GUI_ColorMap[color_idx][2];
+                uint32_t color_delta = 0;
+
+                uint32_t tmp_color_accu = color_r-pixel_r;
+                color_delta += tmp_color_accu*tmp_color_accu;
+
+                tmp_color_accu = color_g-pixel_g;
+                color_delta += tmp_color_accu*tmp_color_accu;
+
+                tmp_color_accu = color_b-pixel_b;
+                color_delta += tmp_color_accu*tmp_color_accu;
+
+                if (color_delta >= color_min_delta)
+                    continue;
+
+                color_min_delta = color_delta;
+                color_min_delta_idx = color_idx;
+
+                if (color_min_delta == 0)
+                    break;
+            }
+
+            Paint_SetPixel(Xstart + bmpInfoHeader.biWidth-1-x, Ystart + y, color_min_delta_idx);
         }
         watchdog_update();
     }
