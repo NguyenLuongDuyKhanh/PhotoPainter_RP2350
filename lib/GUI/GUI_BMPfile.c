@@ -84,12 +84,14 @@ bool GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     if (br != sizeof(BMPFILEHEADER)) {
         printf("f_read bmpFileHeader error\r\n");
         // printf("br is %d\n", br);
+        f_close(&fil);
         return false;
     }
     f_read(&fil, &bmpInfoHeader, sizeof(BMPINFOHEADER), &br);   // sizeof(BMPFILEHEADER) must be 50
     if (br != sizeof(BMPINFOHEADER)) {
         printf("f_read bmpInfoHeader error\r\n");
         // printf("br is %d\n", br);
+        f_close(&fil);
         return false;
     }
 
@@ -105,10 +107,12 @@ bool GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     // Determine if it is a monochrome or compressed bitmap
     if (bmpInfoHeader.biBitCount != 24) {
         printf("image is not 24bpp bitmap!\r\n");
+        f_close(&fil);
         return false;
     }
     if (bmpInfoHeader.biCompression != 0) {
         printf("image is compressed!\r\n");
+        f_close(&fil);
         return false;
     }
 
@@ -134,9 +138,11 @@ bool GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
         for(x = 0; x < bmpInfoHeader.biWidth ; x++) {//Show a line in the line
             if(f_read(&fil, Rdata, 3, &br) != FR_OK) {
                 perror("get bmpdata:\r\n");
+                f_close(&fil);
                 return false;
             } else if (br != 3) {
                 printf("early eof\r\n");
+                f_close(&fil);
                 return false;
             }
 
