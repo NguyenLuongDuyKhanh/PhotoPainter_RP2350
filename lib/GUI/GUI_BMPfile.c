@@ -53,7 +53,7 @@ const uint8_t GUI_ColorMap[GUI_COLORMAP_NUM_COLORS][3] = {
         {255, 127, 0}, // Orange
 };
 
-void GUI_AddClampedDelta(uint8_t* acc, int delta) {
+static void GUI_AddClampedDelta(uint8_t* acc, int delta) {
     int result = (int)*acc + delta;
     if (result < 0)
         *acc = 0;
@@ -121,17 +121,12 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     
     for(y = 0; y < bmpInfoHeader.biHeight; y++) {//Total display column
         for(x = 0; x < bmpInfoHeader.biWidth ; x++) {//Show a line in the line
-            if(f_read(&fil, (char *)Rdata, 1, &br) != FR_OK) {
+            if(f_read(&fil, Rdata, 3, &br) != FR_OK) {
                 perror("get bmpdata:\r\n");
-                break;
-            }
-            if(f_read(&fil, (char *)Rdata+1, 1, &br) != FR_OK) {
-                perror("get bmpdata:\r\n");
-                break;
-            }
-            if(f_read(&fil, (char *)Rdata+2, 1, &br) != FR_OK) {
-                perror("get bmpdata:\r\n");
-                break;
+                return 1;
+            } else if (br != 3) {
+                printf("early eof\r\n");
+                return 1;
             }
 
             // add original pixel data to dither line buffer in correct order
