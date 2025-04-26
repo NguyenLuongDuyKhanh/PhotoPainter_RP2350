@@ -63,7 +63,7 @@ static void GUI_AddClampedDelta(uint8_t* acc, int delta) {
         *acc = (uint8_t)result;
 }
 
-UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
+bool GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
 {
     BMPFILEHEADER bmpFileHeader;  //Define a bmp file header structure
     BMPINFOHEADER bmpInfoHeader;  //Define a bmp info header structure
@@ -75,7 +75,7 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     fr = f_open(&fil, path, FA_READ);
     if (FR_OK != fr && FR_EXIST != fr) {
         printf("f_open(%s) error: %s (%d)\n", path, FRESULT_str(fr), fr);
-        return 1;
+        return false;
     }
     
     // Set the file pointer from the beginning
@@ -84,27 +84,38 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     if (br != sizeof(BMPFILEHEADER)) {
         printf("f_read bmpFileHeader error\r\n");
         // printf("br is %d\n", br);
-        return 1;
+        return false;
     }
     f_read(&fil, &bmpInfoHeader, sizeof(BMPINFOHEADER), &br);   // sizeof(BMPFILEHEADER) must be 50
     if (br != sizeof(BMPINFOHEADER)) {
         printf("f_read bmpInfoHeader error\r\n");
         // printf("br is %d\n", br);
-        return 1;
+        return false;
     }
-    if(bmpInfoHeader.biWidth > bmpInfoHeader.biHeight)
-        Paint_SetRotate(0);
+
+    // handle images with negative height, where the image is mirrored horizontally
+    int height = bmpInfoHeader.biHeight < 0 ? -bmpInfoHeader.biHeight : bmpInfoHeader.biHeight;
+    if (bmpInfoHeader.biWidth > height)
+        Paint_SetRotate(bmpInfoHeader.biHeight < 0 ? 180 : 0);
     else
-        Paint_SetRotate(90);
+        Paint_SetRotate(bmpInfoHeader.biHeight < 0 ? 270 : 90);
 
     printf("pixel = %d * %d\r\n", bmpInfoHeader.biWidth, bmpInfoHeader.biHeight);
 
-    // Determine if it is a monochrome bitmap
-    int readbyte = bmpInfoHeader.biBitCount;
-    if(readbyte != 24){
-        printf("Bmp image is not 24 bitmap!\n");
-        return 1;
+    // Determine if it is a monochrome or compressed bitmap
+    if (bmpInfoHeader.biBitCount != 24) {
+        printf("image is not 24bpp bitmap!\r\n");
+        return false;
     }
+    if (bmpInfoHeader.biCompression != 0) {
+        printf("image is compressed!\r\n");
+        return false;
+    }
+
+    // Calculate overscan (round up to next multiple of 4)
+    unsigned int overscan = ((bmpInfoHeader.biWidth*3 + 3) & ~3) - bmpInfoHeader.biWidth*3;
+    printf("overscan %d\r\n", overscan);
+
     // Read image data into the cache
     UWORD x, y;
     UBYTE Rdata[3];
@@ -119,14 +130,14 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     uint8_t dither_lines[dither_line_width][2][3]; // [x][y 0:1][rgb_channel 0:2]
     memset(dither_lines, 0, dither_line_width * 2 * 3);
     
-    for(y = 0; y < bmpInfoHeader.biHeight; y++) {//Total display column
+    for(y = 0; y < height; y++) {//Total display column
         for(x = 0; x < bmpInfoHeader.biWidth ; x++) {//Show a line in the line
             if(f_read(&fil, Rdata, 3, &br) != FR_OK) {
                 perror("get bmpdata:\r\n");
-                return 1;
+                return false;
             } else if (br != 3) {
                 printf("early eof\r\n");
-                return 1;
+                return false;
             }
 
             // add original pixel data to dither line buffer in correct order
@@ -173,12 +184,16 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
             }
         }
 
+        // skip overscan (all bitmap rows need to be aligned to 4 byte lengths)
+        if (overscan > 0)
+            f_lseek(&fil, f_tell(&fil) + overscan);
+
         watchdog_update();
     }
     printf("close file\n");
     f_close(&fil);
 
-    return 0;
+    return true;
 }
 
 
