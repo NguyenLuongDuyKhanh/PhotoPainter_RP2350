@@ -53,6 +53,16 @@ const uint8_t GUI_ColorMap[GUI_COLORMAP_NUM_COLORS][3] = {
         {255, 127, 0}, // Orange
 };
 
+void GUI_AddClampedDelta(uint8_t* acc, int delta) {
+    int result = (int)*acc + delta;
+    if (result < 0)
+        *acc = 0;
+    else if (result > 0xff)
+        *acc = 0xff;
+    else
+        *acc = (uint8_t)result;
+}
+
 UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
 {
     BMPFILEHEADER bmpFileHeader;  //Define a bmp file header structure
@@ -102,6 +112,12 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
     f_lseek(&fil, bmpFileHeader.bOffset);
 
     printf("read data\n");
+
+    // two rows of rgb888 pixel error to avoid a full image copy in memory
+    // the first and last pixel columns are a border for more efficiency, as no range checks are needed
+    int dither_line_width = (int)bmpInfoHeader.biWidth + 2;
+    uint8_t dither_lines[dither_line_width][2][3]; // [x][y 0:1][rgb_channel 0:2]
+    memset(dither_lines, 0, dither_line_width * 2 * 3);
     
     for(y = 0; y < bmpInfoHeader.biHeight; y++) {//Total display column
         for(x = 0; x < bmpInfoHeader.biWidth ; x++) {//Show a line in the line
@@ -118,23 +134,19 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
                 break;
             }
 
-            uint8_t pixel_r = Rdata[2], pixel_g = Rdata[1], pixel_b = Rdata[0];
+            // add original pixel data to dither line buffer in correct order
+            for (int channel = 0; channel < 3; channel++)
+                GUI_AddClampedDelta(&dither_lines[x + 1][0][channel], (int)Rdata[2-channel]);
+
+            // find closest palette color
             uint8_t color_min_delta_idx = 0;
             uint32_t color_min_delta = UINT32_MAX;
             for (int color_idx = 0; color_idx < GUI_COLORMAP_NUM_COLORS; color_idx++) {
-                uint8_t color_r = GUI_ColorMap[color_idx][0],
-                    color_g = GUI_ColorMap[color_idx][1],
-                    color_b = GUI_ColorMap[color_idx][2];
                 uint32_t color_delta = 0;
-
-                uint32_t tmp_color_accu = color_r-pixel_r;
-                color_delta += tmp_color_accu*tmp_color_accu;
-
-                tmp_color_accu = color_g-pixel_g;
-                color_delta += tmp_color_accu*tmp_color_accu;
-
-                tmp_color_accu = color_b-pixel_b;
-                color_delta += tmp_color_accu*tmp_color_accu;
+                for (int channel = 0; channel < 3; channel++) {
+                    uint32_t channel_val = GUI_ColorMap[color_idx][channel]-dither_lines[x + 1][0][channel];
+                    color_delta += channel_val*channel_val;
+                }
 
                 if (color_delta >= color_min_delta)
                     continue;
@@ -146,8 +158,26 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
                     break;
             }
 
+            // perform dithering per color component channel
+            for (int channel = 0; channel < 3; channel++) {
+                int error = (int)dither_lines[x + 1][0][channel] - (int)GUI_ColorMap[color_min_delta_idx][channel];
+                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][0][channel], (error * 7) >> 4);
+                GUI_AddClampedDelta(&dither_lines[x - 1 + 1][1][channel], (error * 3) >> 4);
+                GUI_AddClampedDelta(&dither_lines[x + 0 + 1][1][channel], (error * 5) >> 4);
+                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][1][channel], (error * 1) >> 4);
+            }
+
             Paint_SetPixel(Xstart + bmpInfoHeader.biWidth-1-x, Ystart + y, color_min_delta_idx);
         }
+
+        // shift dither line buffer up
+        for (int col = 0; col < dither_line_width; col++) {
+            for (int channel = 0; channel < 3; channel++) {
+                dither_lines[col][0][channel] = dither_lines[col][1][channel];
+                dither_lines[col][1][channel] = 0;
+            }
+        }
+
         watchdog_update();
     }
     printf("close file\n");
