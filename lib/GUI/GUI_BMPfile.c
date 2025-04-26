@@ -156,10 +156,10 @@ UBYTE GUI_ReadBmp_RGB_7Color(const char *path, UWORD Xstart, UWORD Ystart)
             // perform dithering per color component channel
             for (int channel = 0; channel < 3; channel++) {
                 int error = (int)dither_lines[x + 1][0][channel] - (int)GUI_ColorMap[color_min_delta_idx][channel];
-                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][0][channel], (error * 7) >> 4);
-                GUI_AddClampedDelta(&dither_lines[x - 1 + 1][1][channel], (error * 3) >> 4);
-                GUI_AddClampedDelta(&dither_lines[x + 0 + 1][1][channel], (error * 5) >> 4);
-                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][1][channel], (error * 1) >> 4);
+                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][0][channel], (error * 7) / 16);
+                GUI_AddClampedDelta(&dither_lines[x - 1 + 1][1][channel], (error * 3) / 16);
+                GUI_AddClampedDelta(&dither_lines[x + 0 + 1][1][channel], (error * 5) / 16);
+                GUI_AddClampedDelta(&dither_lines[x + 1 + 1][1][channel], (error * 1) / 16);
             }
 
             Paint_SetPixel(Xstart + bmpInfoHeader.biWidth-1-x, Ystart + y, color_min_delta_idx);
