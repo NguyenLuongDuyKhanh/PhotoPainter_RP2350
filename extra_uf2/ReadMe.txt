@@ -18,5 +18,3 @@ Clock selection (the next timer will start only after the screen refresh is comp
 	rtc_10_hours.uf2: Refresh every ten hours
 	rtc_12_hours.uf2: Refresh every twelve hours
 	rtc_24_hours.uf2: Refresh every 24 hours
-
-RTC detection ：The UF2 file is only used to refresh in a short time to detect whether the RTC can work normally. If it does not work, it may be that the battery is dead or there is a problem with the RTC circuit.

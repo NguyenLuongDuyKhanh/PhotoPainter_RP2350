@@ -765,6 +765,7 @@ void file_sort()
 
     int scanFileNum1=0;
     int scanFileNum2=0;
+    int js=0;
     for(char i=0; i<fileNumber; i++)
     {
         if(f_gets(temp[i], 999, &fil) == NULL) 
@@ -807,12 +808,15 @@ void file_sort()
         do
         {
             scanFileNum1 = file_gets(templist2, fileNumber/2, &fil);
+            if(scanFileNum1 <= 0) break;
             if(!(strcmp(templist1[fileNumber/2-1], templist2[0]) < 0))
             {
                 file_copy(temp, templist1, templist2, scanFileNum1);
             }
             file_temporary_puts(templist2, scanFileNum1, Temporary_file_name[file_count1++]);
-        }while(scanFileNum1 == fileNumber/2);
+            DEV_Delay_ms(1);
+            // printf("js = %d   scanFileNum1 = %d \r\n", js++, scanFileNum1);
+        }while(scanFileNum1 == fileNumber/2 && !f_eof(&fil));
 
         fr = f_close(&fil);
         if (FR_OK != fr) {
@@ -825,6 +829,7 @@ void file_sort()
 
         file_puts(templist1, fileNumber/2, &fil);
 
+        js = 0;
         for (int i = 0; i < file_count; i++)
         {
             scanFileNum2 = file_temporary_gets(templist1, Temporary_file_name[i]);
@@ -836,8 +841,11 @@ void file_sort()
                     file_copy(temp, templist1, templist2, scanFileNum1);
                     file_temporary_puts(templist2, scanFileNum1, Temporary_file_name[j]);
                 }
+                // DEV_Delay_ms(1);
             }
             file_puts(templist1, scanFileNum2, &fil);
+            DEV_Delay_ms(1);
+            // printf("js1 = %d \r\n", js++);
         }
         fr = f_close(&fil);
         if (FR_OK != fr) {

@@ -17,7 +17,7 @@ Mode 0: Automatically get pic folder names and sort them
 Mode 1: Automatically get pic folder names but not sorted
 Mode 2: pic folder name is not automatically obtained, users need to create fileList.txt file and write the picture name in TF card by themselves
 */
-#define Mode 2
+#define Mode 0
 
 
 float measureVBAT(void)
@@ -61,8 +61,8 @@ int main(void)
     Time_data Time = {2024-2000, 3, 31, 0, 0, 0};
     Time_data alarmTime = Time;
     // alarmTime.seconds += 10;
-    // alarmTime.minutes += 30;
-    alarmTime.hours +=24;
+    alarmTime.minutes += 15;
+    // alarmTime.hours +=1;
     char isCard = 0;
   
     printf("Init...\r\n");
