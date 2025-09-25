@@ -131,6 +131,14 @@ int EPD_7in3f_display(float vol)
     return 0;
 }
 
+int EPD_7in3f_clear(void) {
+    EPD_7IN3F_Init();
+    EPD_7IN3F_Clear(1);   // Clear the screen
+    DEV_Delay_ms(2000);
+    EPD_7IN3F_Sleep();   // Put the display into sleep mode
+    return 0;
+}
+
 int EPD_7in3f_test(void)
 {
     printf("e-Paper Init and Clear...\r\n");

@@ -69,73 +69,15 @@ int main(void)
     if(DEV_Module_Init() != 0) {  // DEV init
         return -1;
     }
-    
-    watchdog_enable(8*1000, 1);    // 8s
-    DEV_Delay_ms(1000);
-    PCF85063_init();    // RTC init
-    rtcRunAlarm(Time, alarmTime);  // RTC run alarm
-    gpio_set_irq_enabled_with_callback(CHARGE_STATE, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, chargeState_callback);
-
-    if(measureVBAT() < 3.1) {   // battery power is low
-        printf("low power ...\r\n");
-        PCF85063_alarm_Time_Disable();
-        ledLowPower();  // LED flash for Low power
-        powerOff(); // BAT off
-        return 0;
+    //EPD_7in3f_display(1);
+    //EPD_7in3f_test();
+    //EPD_7IN3F_Clear(0);
+    //EPD_7IN3F_Init();
+    //EPD_7IN3F_Clear();
+    //DEV_Delay_ms(1000);
+    EPD_7in3f_clear();
+    while (1) {
+        DEV_Delay_ms(1000);
     }
-    else {
-        printf("work ...\r\n");
-        ledPowerOn();
-    }
-
-    if(!sdTest()) 
-    {
-        isCard = 1;
-        if(Mode == 0)
-        {
-            sdScanDir();
-            file_sort();
-        }
-        if(Mode == 1)
-        {
-            sdScanDir();
-        }
-        if(Mode == 2)
-        {
-            file_cat();
-        }
-        
-    }
-    else 
-    {
-        isCard = 0;
-    }
-
-    if(!DEV_Digital_Read(VBUS)) {    // no charge state
-        run_display(Time, alarmTime, isCard);
-    }
-    else {  // charge state
-        chargeState_callback();
-        while(DEV_Digital_Read(VBUS)) {
-            measureVBAT();
-            
-            #if enChargingRtc
-            if(!DEV_Digital_Read(RTC_INT)) {    // RTC interrupt trigger
-                printf("rtc interrupt\r\n");
-                run_display(Time, alarmTime, isCard);
-            }
-            #endif
-
-            if(!DEV_Digital_Read(BAT_STATE)) {  // KEY pressed
-                printf("key interrupt\r\n");
-                run_display(Time, alarmTime, isCard);
-            }
-            DEV_Delay_ms(200);
-        }
-    }
-    
-    printf("power off ...\r\n");
-    powerOff(); // BAT off
-
     return 0;
 }

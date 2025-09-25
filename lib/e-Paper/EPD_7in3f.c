@@ -209,7 +209,7 @@ void EPD_7IN3F_Init(void)
 
 	EPD_7IN3F_SendCommand(0xE6);   // TSSET
 	EPD_7IN3F_SendData(0x00);
-	
+	printf("EPD_7IN3F_Init done");
 }
 
 /******************************************************************************

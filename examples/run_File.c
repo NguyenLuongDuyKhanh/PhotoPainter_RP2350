@@ -33,6 +33,7 @@ static FATFS *sd_get_fs_by_name(const char *name) {
         none
 */
 void run_mount() {
+    printf("run_mount");
     const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     FATFS *p_fs = sd_get_fs_by_name(arg1);
@@ -48,6 +49,7 @@ void run_mount() {
     sd_card_t *pSD = sd_get_by_name(arg1);
     // myASSERT(pSD);
     pSD->mounted = true;
+    printf("run_mount done");
 }
 
 /* 
@@ -275,6 +277,7 @@ void sdInitTest(void)
 */
 char sdTest(void)
 {
+    printf("Testing tf card \n ");
     sd_card_t *pSD = sd_get_by_num(0);
     FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
     if(FR_OK != fr) {
@@ -284,6 +287,7 @@ char sdTest(void)
         f_unmount(pSD->pcName);
         return 0;
     }
+    printf("Testing tf card done \n");
 }
 
 
