@@ -26,10 +26,7 @@ main.c
 )
 
 # enable usb output, disable uart output
-# pico_enable_stdio_usb(epd 1)
-# pico_enable_stdio_uart(epd 0)
-
-# enable usb output, disable uart output
+# PhotoPainter_RP2350
 pico_enable_stdio_usb(epd 0)
 pico_enable_stdio_uart(epd 1)
 

@@ -123,15 +123,16 @@ void spi_unlock(spi_t *pSPI) {
 }
 
 bool my_spi_init(spi_t *pSPI) {
+    /* PhotoPainter_RP2350 No share 
     auto_init_mutex(my_spi_init_mutex);
     mutex_enter_blocking(&my_spi_init_mutex);
+    */
     if (!pSPI->initialized) {
         //// The SPI may be shared (using multiple SSs); protect it
         //pSPI->mutex = xSemaphoreCreateRecursiveMutex();
         //xSemaphoreTakeRecursive(pSPI->mutex, portMAX_DELAY);
         if (!mutex_is_initialized(&pSPI->mutex)) mutex_init(&pSPI->mutex);
         spi_lock(pSPI);
-
         // For the IRQ notification:
         sem_init(&pSPI->sem, 0, 1);
 
@@ -139,10 +140,20 @@ bool my_spi_init(spi_t *pSPI) {
         // Enable SPI at 100 kHz and connect to GPIOs
         spi_init(pSPI->hw_inst, 100 * 1000);
         spi_set_format(pSPI->hw_inst, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
-
+        // PhotoPainter_RP2350
+        printf("Init SPI\n");
+        printf("hw_inst=%d\n", pSPI->hw_inst);
+        printf("pSPI=%p\n", pSPI);
+        printf("MISO=%d\n", pSPI->miso_gpio);
+        printf("MOSI=%d\n", pSPI->mosi_gpio);
+        printf("SCK=%d\n", pSPI->sck_gpio);
         gpio_set_function(pSPI->miso_gpio, GPIO_FUNC_SPI);
-        gpio_set_function(pSPI->mosi_gpio, GPIO_FUNC_SPI);
-        gpio_set_function(pSPI->sck_gpio, GPIO_FUNC_SPI);
+        // gpio_set_function(pSPI->mosi_gpio, GPIO_FUNC_SPI);
+        // gpio_set_function(pSPI->sck_gpio, GPIO_FUNC_SPI);
+        gpio_set_function(3, GPIO_FUNC_SPI);
+        gpio_set_function(2, GPIO_FUNC_SPI);
+        printf("Init SPI okay\n");
+        my_printf("Init SPI okay\n");
         // ss_gpio is initialized in sd_init_driver()
 
         // Slew rate limiting levels for GPIO outputs.
@@ -214,7 +225,9 @@ bool my_spi_init(spi_t *pSPI) {
         pSPI->initialized = true;
         spi_unlock(pSPI);
     }
-    mutex_exit(&my_spi_init_mutex);
+    printf("my_spi_init mutex_exit\n");
+    // PhotoPainter_RP2350
+    // mutex_exit(&my_spi_init_mutex);
     return true;
 }
 

@@ -1207,10 +1207,12 @@ bool sd_init_driver() {
             }
             // Chip select is active-low, so we'll initialise it to a
             // driven-high state.
+            /* PhotoPainter_RP2350 ss to ground
             gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output
             gpio_init(pSD->ss_gpio);
             gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
             gpio_put(pSD->ss_gpio, 1);  // In case set_dir does anything
+            */
         }
         for (size_t i = 0; i < spi_get_num(); ++i) {
             spi_t *pSPI = spi_get_by_num(i);
