@@ -6,11 +6,26 @@
 #include "DEV_Config.h"
 
 #include <time.h>
-
+#include "pico/low_power.h"
+#include "pico/aon_timer.h"
 extern const char *fileList;
 extern char pathName[];
 
 #define enChargingRtc 0
+
+// How long to wait
+#ifndef AWAKE_TIME_MS
+#define AWAKE_TIME_MS 10000
+#endif
+#ifndef SLEEP_TIME_MS
+#define SLEEP_TIME_MS 10000
+#endif
+
+#define SLEEP_TIME_1MINUTE_MS 60*1000
+#define SLEEP_TIME_15MINUTE_MS 15*60*1000
+
+static uint32_t __persistent_data(run_count);
+static bool __persistent_data(aon_timer_started);
 
 /*
 Mode 0: Automatically get pic folder names and sort them
@@ -54,6 +69,37 @@ void run_display(Time_data Time, Time_data alarmTime, char hasCard)
 
     PCF85063_clear_alarm_flag();    // clear RTC alarm flag
     rtcRunAlarm(Time, alarmTime);  // RTC run alarm
+}
+
+void timer_set() {
+    // Must start the aon timer if needed
+    printf("Current time: %llu\n", aon_timer_get_absolute_time());
+    if (!aon_timer_started) {
+        low_power_start_aon_timer_at_time_ms(1776858754000);
+        aon_timer_started = true;
+    }
+#if AWAKE_TIME_MS < 10000
+    // pause for at least 10s to allow the debugger to attach on power up to allow the device to be re-programmed
+    printf("Waiting a bit to allow debugger to attach\n");
+    sleep_ms(10000 - AWAKE_TIME_MS);
+#endif
+    //hard_assert(status_led_init());
+    //status_led_set_state(true);
+
+    // Scratch register survives power down
+    printf("Wake up, test run: %u\n", run_count++);
+
+    // Stay awake for a few seconds
+    printf("Awake for %dms\n", AWAKE_TIME_MS);
+    sleep_ms(AWAKE_TIME_MS);
+
+    // power off
+    printf("Low power for %dms\n", SLEEP_TIME_1MINUTE_MS);
+    //status_led_set_state(false);
+    int rc = low_power_pstate_for_ms(SLEEP_TIME_1MINUTE_MS, NULL, NULL);
+    //status_led_set_state(true);
+    printf("low_power_pstate_for_ms returned error %d\n", rc);
+    hard_assert(false); // should never get here!
 }
 
 int main(void)
@@ -136,6 +182,7 @@ int main(void)
     
     watchdog_disable();
     printf("watch dog disabled and power off ...\r\n");
+    timer_set();
     powerOff(); // BAT off
 
     return 0;

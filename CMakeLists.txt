@@ -33,4 +33,4 @@ pico_enable_stdio_uart(epd 1)
 # create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(epd)
 
-target_link_libraries(epd examples ePaper GUI led Fonts Config RTC FatFs_SPI)
+target_link_libraries(epd pico_low_power examples ePaper GUI led Fonts Config RTC FatFs_SPI)
