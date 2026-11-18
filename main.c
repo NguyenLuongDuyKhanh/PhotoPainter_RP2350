@@ -1,11 +1,12 @@
 #include "EPD_Test.h"   // Examples
 #include "run_File.h"
-
+#include "picow_ntp_client.h"
 #include "led.h"
 #include "waveshare_PCF85063.h" // RTC
 #include "DEV_Config.h"
 
 #include <time.h>
+#include "log.h"
 #include "pico/low_power.h"
 #include "pico/aon_timer.h"
 extern const char *fileList;
@@ -45,8 +46,12 @@ float measureVBAT(void)
     return Voltage;
 }
 
-void chargeState_callback() 
+static void chargeState_callback(uint gpio, uint32_t events)
 {
+    // Unused parameters, provided to match the callback signature
+    (void)gpio;
+    (void)events;
+
     if(DEV_Digital_Read(VBUS)) {
         if(!DEV_Digital_Read(CHARGE_STATE)) {  // is charging
             ledCharging();
@@ -102,6 +107,10 @@ void timer_set() {
     hard_assert(false); // should never get here!
 }
 
+void ntp_get_time(void) {
+    run_ntp_test();
+}
+
 int main(void)
 {
     Time_data Time = {2024-2000, 3, 31, 0, 0, 0};
@@ -115,8 +124,10 @@ int main(void)
     if(DEV_Module_Init() != 0) {  // DEV init
         return -1;
     }
-    
-    watchdog_enable(8*1000, 1);    // 8s
+
+    LOG_DEBUG("Successfully test log main() start");
+
+    //watchdog_enable(8*1000, 1);    // 8s
     DEV_Delay_ms(1000);
     PCF85063_init();    // RTC init
     rtcRunAlarm(Time, alarmTime);  // RTC run alarm
@@ -134,6 +145,7 @@ int main(void)
         ledPowerOn();
     }
     */
+    ntp_get_time();
     if(!sdTest()) 
     {
         isCard = 1;
@@ -157,28 +169,7 @@ int main(void)
         isCard = 0;
     }
 
-    if(!DEV_Digital_Read(VBUS)) {    // no charge state
-        run_display(Time, alarmTime, isCard);
-    }
-    else {  // charge state
-        chargeState_callback();
-        while(DEV_Digital_Read(VBUS)) {
-            measureVBAT();
-            
-            #if enChargingRtc
-            if(!DEV_Digital_Read(RTC_INT)) {    // RTC interrupt trigger
-                printf("rtc interrupt\r\n");
-                run_display(Time, alarmTime, isCard);
-            }
-            #endif
-
-            if(!DEV_Digital_Read(BAT_STATE)) {  // KEY pressed
-                printf("key interrupt\r\n");
-                run_display(Time, alarmTime, isCard);
-            }
-            DEV_Delay_ms(200);
-        }
-    }
+    run_display(Time, alarmTime, isCard);
     
     watchdog_disable();
     printf("watch dog disabled and power off ...\r\n");

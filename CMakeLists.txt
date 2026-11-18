@@ -12,13 +12,18 @@ add_subdirectory(lib/GUI)
 add_subdirectory(lib/led)
 add_subdirectory(examples)
 add_subdirectory(lib/FatFs_SPI build)
+add_subdirectory(lib/pico_w)
+#add_subdirectory(lib/pico_w/wifi/ntp_client)
 
 # add a header directory
 include_directories(examples)
+include_directories(./lib/Logger)
 include_directories(./lib/Config)
 include_directories(./lib/GUI)
 include_directories(./lib/RTC)
 include_directories(./lib/led)
+include_directories(./lib/pico_w/wifi)
+include_directories(./lib/pico_w/wifi/ntp_client)
 
 # generate an executable file
 add_executable(epd
@@ -33,4 +38,4 @@ pico_enable_stdio_uart(epd 1)
 # create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(epd)
 
-target_link_libraries(epd pico_low_power examples ePaper GUI led Fonts Config RTC FatFs_SPI)
+target_link_libraries(epd pico_low_power examples ePaper GUI led Fonts Config RTC FatFs_SPI picow_ntp_client_poll)
